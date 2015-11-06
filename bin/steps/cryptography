@@ -10,6 +10,7 @@
 # This script is invoked by [`bin/compile`](/).
 
 # The location of the pre-compiled cryptography binary.
+# isysd: What is this pre-compiled crap? Not healthy for crypto dependencies. Can heroku do without? Why custom? Is it conflicting?
 VENDORED_LIBFFI="https://lang-python.s3.amazonaws.com/$STACK/libraries/vendor/libffi.tar.gz"
 
 PKG_CONFIG_PATH="/app/.heroku/vendor/lib/pkgconfig:$PKG_CONFIG_PATH"
@@ -35,3 +36,16 @@ if (pip-grep -s requirements.txt bcrypt cffi cryptography pyOpenSSL PyOpenSSL re
 fi
 
 bpwatch stop libffi_install
+
+echo "installing secp256k1 C depencency"
+git clone git://github.com/bitcoin/secp256k1.git $BUILD_DIR/libsecp256k1
+pushd $BUILD_DIR/libsecp256k1
+git checkout d7eb1ae96dfe9d497a26b3e7ff8b6f58e61e400a
+./autogen.sh
+./configure --enable-module-recovery --enable-module-ecdh --enable-module-schnorr
+make
+popd
+echo "secp256k1 C depencency installed, setting up env vars"
+export INCLUDE_DIR=$(readlink -f $BUILD_DIR/libsecp256k1/include)
+export LIB_DIR=$(readlink -f $BUILD_DIR/libsecp256k1/.libs)
+export LD_LIBRARY_PATH=$(readlink -f $BUILD_DIR/libsecp256k1/.libs)
